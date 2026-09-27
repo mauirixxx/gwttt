@@ -21,6 +21,12 @@ The current production installation runs on PHP 8.3 and MariaDB 10.11. PostgreSQ
 
 GWTTT currently supports user registration and authentication, password changes and password reset, e-mail changes, multiple Guild Wars accounts and characters, account and character title tracking, automatic title relationships such as Kind of a Big Deal, Nightfall treasure tracking and reminders, miniature/Hall of Monuments tracking, sixth-year everlasting tonic inventory, administrator title/rank and miniature catalog management, and configurable SMTP e-mail delivery.
 
+### Optional Guild Wars title import
+
+If you use [GWToolbox++](https://www.gwtoolbox.com/), the optional [GWTTT Titles Exporter plugin](https://github.com/mauirixxx/GWST-Account-Exporter) can read your title progress directly from the running Guild Wars client and export it to a JSON file for easy import into GWTTT. The export includes both character-specific and account-wide title progress, reducing the need to enter or update title values by hand.
+
+GWToolbox++ is only required for using the exporter plugin; it is **not** required to use GWTTT itself. See the exporter repository for plugin installation and usage instructions.
+
 A fresh installation uses the single consolidated database initializer at `sql-init/gwttt-initialization.sql`.
 
 ## Documentation
