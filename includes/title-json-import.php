@@ -20,14 +20,36 @@ function gwttt_title_import_load(mysqli $con, int $userid, array $file): array
     $stmt=$con->prepare('SELECT c.charid,c.accid,c.charname,a.accemail FROM gwchars c JOIN gwaccounts a ON a.accid=c.accid AND a.userid=c.userid WHERE c.userid=? AND c.charname=?');$stmt->bind_param('is',$userid,$character_name);$stmt->execute();$matches=$stmt->get_result()->fetch_all(MYSQLI_ASSOC);$stmt->close();
     if(count($matches)!==1) throw new RuntimeException(count($matches)?'More than one of your characters matches "'.$character_name.'". Rename the duplicate or update it manually before importing.':'Character "'.$character_name.'" is not registered in your GWTTT account. Add the character first, then import again.');
     $character=$matches[0];$accid=(int)$character['accid'];$charid=(int)$character['charid'];
-    $title_rows=[];$q=$con->prepare('SELECT titlenameid,titlename,titletype,autofilled FROM gwtitles');$q->execute();$r=$q->get_result();while($row=$r->fetch_assoc())$title_rows[strtolower(trim($row['titlename']))]=$row;$q->close();
+
+    // gwca_title_id is the stable machine identity. titlename remains presentation
+    // text and may be customized without breaking imports. Name lookup is retained
+    // only as a compatibility fallback for exports that do not contain an ID.
+    $title_rows_by_gwca=[];$title_rows_by_name=[];
+    $q=$con->prepare('SELECT titlenameid,gwca_title_id,titlename,titletype,autofilled FROM gwtitles');$q->execute();$r=$q->get_result();
+    while($row=$r->fetch_assoc()){
+        $title_rows_by_name[strtolower(trim($row['titlename']))]=$row;
+        if($row['gwca_title_id']!==null)$title_rows_by_gwca[(int)$row['gwca_title_id']]=$row;
+    }
+    $q->close();
+
     $changes=[];$skipped=[];
     foreach($data['titles'] as $exported){
         if(!is_array($exported))continue;$name=trim((string)($exported['name']??''));
         try{$value=gwttt_title_import_value($exported);}catch(Throwable $e){$skipped[]=['name'=>$name?:'(unnamed title)','reason'=>'invalid export value'];continue;}
         $points=$value['points'];$percentage_based=$value['percentage_based'];if($name===''){$skipped[]=['name'=>'(unnamed title)','reason'=>'invalid export value'];continue;}
-        $key=strtolower($name);if(!isset($title_rows[$key])){$skipped[]=['name'=>$name,'reason'=>'not tracked by GWTTT'];continue;}$title=$title_rows[$key];$type=(int)$title['titletype'];
-        if($type===1&&(int)$title['autofilled']!==0){$skipped[]=['name'=>$name,'reason'=>'auto-filled by GWTTT'];continue;}if($type!==0&&$type!==1){$skipped[]=['name'=>$name,'reason'=>'unsupported title scope'];continue;}
+
+        $title=null;
+        if(array_key_exists('id',$exported)){
+            $gwca_id=filter_var($exported['id'],FILTER_VALIDATE_INT);
+            if($gwca_id===false||$gwca_id<0){$skipped[]=['name'=>$name,'reason'=>'invalid title id'];continue;}
+            if(isset($title_rows_by_gwca[(int)$gwca_id]))$title=$title_rows_by_gwca[(int)$gwca_id];
+        }else{
+            $key=strtolower($name);if(isset($title_rows_by_name[$key]))$title=$title_rows_by_name[$key];
+        }
+        if($title===null){$skipped[]=['name'=>$name,'reason'=>'not tracked by GWTTT'];continue;}
+
+        $type=(int)$title['titletype'];
+        if($type===1&&(int)$title['autofilled']!==0){$skipped[]=['name'=>$title['titlename'],'reason'=>'auto-filled by GWTTT'];continue;}if($type!==0&&$type!==1){$skipped[]=['name'=>$title['titlename'],'reason'=>'unsupported title scope'];continue;}
         $title_id=(int)$title['titlenameid'];$target_charid=$type===0?0:$charid;$cur=$con->prepare('SELECT titlepoints FROM gwstats WHERE userid=? AND accid=? AND charid=? AND titlenameid=? LIMIT 1');$cur->bind_param('iiii',$userid,$accid,$target_charid,$title_id);$cur->execute();$existing=$cur->get_result()->fetch_assoc();$cur->close();$old=$existing?(int)$existing['titlepoints']:null;
         if($old===null&&$points===0){$skipped[]=['name'=>$title['titlename'],'reason'=>'zero points; no existing row to update'];continue;}if($old===$points)continue;
         $changes[]=['title_id'=>$title_id,'name'=>$title['titlename'],'type'=>$type,'old'=>$old,'new'=>$points,'percentage_based'=>$percentage_based];
