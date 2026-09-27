@@ -40,14 +40,19 @@ function gwttt_title_import_load(mysqli $con, int $userid, array $file): array
 function gwttt_title_import_apply(mysqli $con,int $userid,array $preview): int
 {
     $accid=(int)$preview['character']['accid'];$charid=(int)$preview['character']['charid'];$count=0;$own=$con->prepare('SELECT c.charid FROM gwchars c JOIN gwaccounts a ON a.accid=c.accid AND a.userid=c.userid WHERE c.userid=? AND c.charid=? AND c.accid=? LIMIT 1');$own->bind_param('iii',$userid,$charid,$accid);$own->execute();$valid=$own->get_result()->fetch_assoc();$own->close();if(!$valid)throw new RuntimeException('The import target is no longer valid.');
-    $con->begin_transaction();try{
+    $con->begin_transaction();
+    try{
         foreach($preview['changes'] as $change){$title_id=(int)$change['title_id'];$points=(int)$change['new'];$type=(int)$change['type'];$target_charid=$type===0?0:$charid;if($points===0&&$change['old']===null)continue;
-            $meta=$con->prepare('SELECT titlenameid,point_scale FROM gwtitles WHERE titlenameid=? AND titletype=? AND (?=0 OR autofilled=0) LIMIT 1');$meta->bind_param('iii',$title_id,$type,$type);$meta->execute();$ok=$meta->get_result()->fetch_assoc();$meta->close();if(!$ok)throw new RuntimeException('A title definition changed while importing.');$scale=(int)$ok['point_scale']===10?10:1;
+            $meta=$con->prepare('SELECT titlenameid,point_scale FROM gwtitles WHERE titlenameid=? AND titletype=? AND (?=0 OR autofilled=0) LIMIT 1');$meta->bind_param('iii',$title_id,$type,$type);$meta->execute();$ok=$meta->get_result()->fetch_assoc();$meta->close();if(!$ok)throw new RuntimeException('A title definition changed while importing.');
             $rank=$con->prepare('SELECT stnameid,stname,strank FROM gwsubtitles WHERE titlenameid=? AND stpoints<=? ORDER BY stpoints DESC,strank DESC LIMIT 1');$rank->bind_param('ii',$title_id,$points);$rank->execute();$rr=$rank->get_result()->fetch_assoc();$rank->close();$max=$con->prepare('SELECT MAX(stpoints) max_points FROM gwsubtitles WHERE titlenameid=?');$max->bind_param('i',$title_id);$max->execute();$mr=$max->get_result()->fetch_assoc();$max->close();$max_points=(int)($mr['max_points']??0);if($max_points<1)throw new RuntimeException('A title has no configured rank thresholds.');
             $stnameid=$rr?(int)$rr['stnameid']:null;$stname=$rr?$rr['stname']:null;$strank=$rr?(int)$rr['strank']:0;$percent=$points>=$max_points?100:(int)floor(($points/$max_points)*100);
-            $up=$con->prepare('INSERT INTO gwstats (titlenameid,stnameid,titlepoints,currentstrankname,currentstrank,percent,charid,accid,userid) VALUES (?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE stnameid=VALUES(stnameid),titlepoints=VALUES(titlepoints),currentstrankname=VALUES(currentstrankname),currentstrank=VALUES(currentstrank),percent=VALUES(percent)');$up->bind_param('iiisiiiii',$title_id,$stnameid,$points,$stname,$strank,$percent,$target_charid,$accid,$userid);if(!$up->execute()){$up->close();throw new RuntimeException('A title update failed.');}$up->close();$count++;}
+            $up=$con->prepare('INSERT INTO gwstats (titlenameid,stnameid,titlepoints,currentstrankname,currentstrank,percent,charid,accid,userid) VALUES (?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE stnameid=VALUES(stnameid),titlepoints=VALUES(titlepoints),currentstrankname=VALUES(currentstrankname),currentstrank=VALUES(currentstrank),percent=VALUES(percent)');$up->bind_param('iiisiiiii',$title_id,$stnameid,$points,$stname,$strank,$percent,$target_charid,$accid,$userid);if(!$up->execute()){$up->close();throw new RuntimeException('A title update failed.');}$up->close();$count++;
         }
         $con->commit();
-    }catch(Throwable $e){$con->rollback();throw $e;}return $count;
+    }catch(Throwable $e){
+        $con->rollback();
+        throw $e;
+    }
+    return $count;
 }
 ?>
