@@ -20,14 +20,16 @@ if (isset($_SESSION['userid'])) {
         while ($row = $result->fetch_assoc()) { echo '<option value="' . (int)$row['titlenameid'] . '">' . h($row['titlename']) . '</option>'; }
         echo '</select><button type="submit">Select title</button></div></form>'; $cts->close();
     } else {
-        $selected_title = $con->prepare("SELECT titlename FROM gwtitles WHERE titlenameid = ? AND titletype = 1 AND autofilled = 0");
-        $selected_title->bind_param("i", $_POST['chartitle']); $selected_title->execute(); $selected_title->bind_result($selected_title_name);
-        if (!$selected_title->fetch()) { $selected_title_name = 'Unknown title'; }
+        $selected_title = $con->prepare("SELECT titlename, point_scale FROM gwtitles WHERE titlenameid = ? AND titletype = 1 AND autofilled = 0");
+        $selected_title->bind_param("i", $_POST['chartitle']); $selected_title->execute(); $selected_title->bind_result($selected_title_name, $selected_point_scale);
+        if (!$selected_title->fetch()) { $selected_title_name = 'Unknown title'; $selected_point_scale = 1; }
         $selected_title->close();
+        $selected_point_scale = (int)$selected_point_scale === 10 ? 10 : 1;
         echo '<div class="stats-title-editor">';
         echo '<p>Updating character title: <strong>' . h($selected_title_name) . '</strong></p>';
+        if ($selected_point_scale === 10) echo '<p>Enter Cartographer progress as a percentage, including tenths if needed (for example <strong>22.4</strong>).</p>';
         echo '<form action="updatecharstats.php" method="post">' . csrf_input() . '<input type="hidden" name="titlenameid" value="' . (int)$_POST['chartitle'] .'">';
-        echo '<input type="number" min="0" step="1" name="titlepoints" required autofocus><button type="submit">Update points</button></form></div>';
+        echo '<input type="number" min="0" '.($selected_point_scale === 10 ? 'max="100" step="0.1"' : 'step="1"').' name="titlepoints" required autofocus><button type="submit">Update points</button></form></div>';
     }
     echo '<div class="stats-current">Current character stats for: <strong>' . h($_SESSION['prefcharname']) . '</strong></div>';
     include_once ('includes/getcharstats.php');
