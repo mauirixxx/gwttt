@@ -25,7 +25,7 @@ GWTTT currently supports user registration and authentication, password changes 
 
 If you use [GWToolbox++](https://www.gwtoolbox.com/), the optional [GWTTT Titles Exporter plugin](https://github.com/mauirixxx/GWTTT-Account-Exporter) can read your title progress directly from the running Guild Wars client and export it to a JSON file for easy import into GWTTT. The export includes both character-specific and account-wide title progress, reducing the need to enter or update title values by hand.
 
-GWToolbox++ is only required for using the exporter plugin; it is **not** required to use GWTTT itself. See the exporter repository for plugin installation and usage instructions.
+[Download the latest GWTTT Titles Exporter release](https://github.com/mauirixxx/GWTTT-Account-Exporter/releases/latest). GWToolbox++ is only required for using the exporter plugin; it is **not** required to use GWTTT itself. See the exporter repository for plugin installation and usage instructions.
 
 A fresh installation uses the single consolidated database initializer at `sql-init/gwttt-initialization.sql`.
 
