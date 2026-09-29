@@ -53,6 +53,23 @@ function gwttt_title_import_apply(mysqli $con,int $userid,array $preview): int
         $con->rollback();
         throw $e;
     }
+
+    // Imports can change both direct GWAMM contributors and the prerequisites
+    // for composite Legendary titles. Rebuild that derived state for the
+    // imported character immediately, without changing the user's preference.
+    if ($count > 0 && isset($_SESSION['userid'])) {
+        $saved_accid = $_SESSION['prefaccid'] ?? null;
+        $saved_charid = $_SESSION['prefcharid'] ?? null;
+        $_SESSION['prefaccid'] = $accid;
+        $_SESSION['prefcharid'] = $charid;
+        try {
+            include __DIR__ . '/update-gwamm.php';
+        } finally {
+            if ($saved_accid === null) unset($_SESSION['prefaccid']); else $_SESSION['prefaccid'] = $saved_accid;
+            if ($saved_charid === null) unset($_SESSION['prefcharid']); else $_SESSION['prefcharid'] = $saved_charid;
+        }
+    }
+
     return $count;
 }
 ?>

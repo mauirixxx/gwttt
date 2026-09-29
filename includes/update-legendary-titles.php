@@ -3,7 +3,7 @@
  * Synchronize the four composite "Legendary" character titles.
  *
  * Guild Wars awards these automatically when their prerequisite campaign
- * titles are maxed. They are derived state in GWST too: users never enter
+ * titles are maxed. They are derived state in GWTTT too: users never enter
  * points for them directly.
  */
 if (isset($_SESSION['userid']) && (int)$_SESSION['prefcharid'] > 0) {
@@ -15,6 +15,8 @@ if (isset($_SESSION['userid']) && (int)$_SESSION['prefcharid'] > 0) {
         40 => [31, 49, 50],                 // Legendary Vanquisher
     ];
 
+    // Completion is determined from the actual stored points and the title's
+    // configured maximum. Cached percentages are display data and can be stale.
     $source_maxed = $con->prepare(
         "SELECT COUNT(*)
          FROM gwstats gs
@@ -22,7 +24,11 @@ if (isset($_SESSION['userid']) && (int)$_SESSION['prefcharid'] > 0) {
            AND gs.charid = ?
            AND gs.accid = ?
            AND gs.userid = ?
-           AND gs.percent >= 100"
+           AND gs.titlepoints >= (
+               SELECT MAX(st.stpoints)
+               FROM gwsubtitles st
+               WHERE st.titlenameid = gs.titlenameid
+           )"
     );
     $target = $con->prepare(
         "SELECT gs.titlenameid, gs.stnameid, gs.stname, gs.strank, gs.stpoints
