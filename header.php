@@ -20,8 +20,8 @@ if (session_status() == PHP_SESSION_NONE) {
 include_once (__DIR__ . '/includes/csrf.php');
 include_once (__DIR__ . '/includes/html.php');
 
-$session_idle_timeout = 1800;
-$session_absolute_timeout = 28800;
+$session_idle_timeout = (int)($_SESSION['session_timeout_seconds'] ?? 1800);
+$session_absolute_timeout = $session_idle_timeout === 0 ? 0 : 28800;
 
 function gwst_destroy_session(): void
 {
@@ -38,8 +38,8 @@ function gwst_destroy_session(): void
 if (isset($_SESSION['userid'])) {
 	$now = time();
 	$session_expired = false;
-	if (isset($_SESSION['last_activity']) && ($now - $_SESSION['last_activity']) > $session_idle_timeout) $session_expired = true;
-	if (isset($_SESSION['login_time']) && ($now - $_SESSION['login_time']) > $session_absolute_timeout) $session_expired = true;
+	if ($session_idle_timeout > 0 && isset($_SESSION['last_activity']) && ($now - $_SESSION['last_activity']) > $session_idle_timeout) $session_expired = true;
+	if ($session_absolute_timeout > 0 && isset($_SESSION['login_time']) && ($now - $_SESSION['login_time']) > $session_absolute_timeout) $session_expired = true;
 	if ($session_expired) gwst_destroy_session();
 	else $_SESSION['last_activity'] = $now;
 }
