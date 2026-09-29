@@ -54,7 +54,7 @@ if (gwst_throttle_is_blocked($con, 'login-ip', $loginIpKey)
     gwst_rate_limited_response('index.php');
 }
 
-$stmt = $con->prepare("SELECT userid, username, userpass, usermail, admin, prefaccid, prefaccname, prefcharid, prefcharname FROM userinfo WHERE username = ? LIMIT 1");
+$stmt = $con->prepare("SELECT u.userid, u.username, u.userpass, u.usermail, u.admin, u.prefaccid, u.prefaccname, u.prefcharid, u.prefcharname, COALESCE(p.session_timeout_seconds, 1800) AS session_timeout_seconds FROM userinfo u LEFT JOIN user_preferences p ON p.userid = u.userid WHERE u.username = ? LIMIT 1");
 $stmt->bind_param("s", $username);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -72,6 +72,7 @@ if ($row && password_verify($password, $row['userpass'])) {
     $_SESSION['prefaccname'] = $row['prefaccname'];
     $_SESSION['prefcharid'] = $row['prefcharid'];
     $_SESSION['prefcharname'] = $row['prefcharname'];
+    $_SESSION['session_timeout_seconds'] = (int)$row['session_timeout_seconds'];
     // A one-way fingerprint lets authenticated requests detect a later password
     // change without storing the password or requiring a schema migration.
     $_SESSION['auth_password_fingerprint'] = hash('sha256', (string)$row['userpass']);
