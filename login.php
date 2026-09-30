@@ -10,19 +10,10 @@
 <?php
 include_once ('connect.php');
 include_once (__DIR__ . '/includes/auth-security.php');
+require_once (__DIR__ . '/includes/session.php');
 $con = mysqli_connect(DATABASE_HOST, DATABASE_USER, DATABASE_PASS, DATABASE_NAME);
 if ($con->connect_errno > 0){
     die ('Unable to connect to database [' . $con->connect_errno . ']');
-}
-if (session_status() == PHP_SESSION_NONE) {
-    ini_set('session.use_strict_mode', '1');
-    ini_set('session.use_only_cookies', '1');
-    ini_set('session.cookie_httponly', '1');
-    ini_set('session.cookie_samesite', 'Lax');
-    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
-        ini_set('session.cookie_secure', '1');
-    }
-    session_start();
 }
 
 function login_error_page(string $message): void
