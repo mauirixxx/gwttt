@@ -74,7 +74,7 @@ if ($row && password_verify($password, $row['userpass'])) {
 }
 
 gwst_throttle_record_failure($con, 'login-user', $loginUserKey, GWST_LOGIN_USER_LIMIT);
-gwst_throttle_record_failure($con, 'login-ip', $loginIpKey, GWST_LOGIN_IP_KEY ?? GWST_LOGIN_IP_LIMIT);
+gwst_throttle_record_failure($con, 'login-ip', $loginIpKey, GWST_LOGIN_IP_LIMIT);
 http_response_code(401);
 login_error_page('The username or password provided does not match.');
 exit();
