@@ -16,6 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
     $name = trim((string)($_POST['tonicname'] ?? ''));
     $rarity = (string)($_POST['rarity'] ?? '');
+    $wiki = trim((string)($_POST['wiki_url'] ?? ''));
+    $wikiParts = $wiki !== '' ? parse_url($wiki) : null;
     $rawOrder = (string)($_POST['display_order'] ?? '0');
     $id = filter_var($_POST['tonicid'] ?? null, FILTER_VALIDATE_INT);
     if (!in_array($action, ['create', 'update'], true)) {
@@ -24,6 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Tonic name must be between 1 and 120 characters.';
     } elseif (!in_array($rarity, $rarities, true)) {
         $error = 'Select a valid rarity.';
+    } elseif ($wiki !== '' && (!filter_var($wiki, FILTER_VALIDATE_URL) || !is_array($wikiParts) || ($wikiParts['scheme'] ?? '') !== 'https' || strtolower((string)($wikiParts['host'] ?? '')) !== 'wiki.guildwars.com' || isset($wikiParts['user']) || isset($wikiParts['pass']))) {
+        $error = 'Wiki URL must be an https://wiki.guildwars.com/ address.';
     } elseif (!ctype_digit($rawOrder) || (int)$rawOrder > 65535) {
         $error = 'Display order must be a whole number between 0 and 65535.';
     } elseif ($action === 'update' && (!$id || $id <= 0)) {
@@ -33,11 +37,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $order = (int)$rawOrder;
         try {
             if ($action === 'create') {
-                $stmt = $con->prepare('INSERT INTO gwtonics (tonicname, rarity, display_order) VALUES (?, ?, ?)');
-                $stmt->bind_param('ssi', $name, $rarity, $order);
+                $stmt = $con->prepare('INSERT INTO gwtonics (tonicname, rarity, display_order, wiki_url) VALUES (?, ?, ?, NULLIF(?, ''))');
+                $stmt->bind_param('ssis', $name, $rarity, $order, $wiki);
             } else {
-                $stmt = $con->prepare('UPDATE gwtonics SET tonicname = ?, rarity = ?, display_order = ? WHERE tonicid = ?');
-                $stmt->bind_param('ssii', $name, $rarity, $order, $id);
+                $stmt = $con->prepare('UPDATE gwtonics SET tonicname = ?, rarity = ?, display_order = ?, wiki_url = NULLIF(?, '') WHERE tonicid = ?');
+                $stmt->bind_param('ssisi', $name, $rarity, $order, $wiki, $id);
             }
             $stmt->execute();
             $affected = $stmt->affected_rows;
@@ -61,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 $tonics = [];
-$result = $con->query("SELECT tonicid, tonicname, rarity, display_order FROM gwtonics ORDER BY FIELD(rarity,'White','Purple','Gold','Green'), display_order, tonicname");
+$result = $con->query("SELECT tonicid, tonicname, rarity, display_order, wiki_url FROM gwtonics ORDER BY FIELD(rarity,'White','Purple','Gold','Green'), display_order, tonicname");
 while ($row = $result->fetch_assoc()) $tonics[] = $row;
 $selected = null;
 foreach ($tonics as $row) {
@@ -84,6 +88,7 @@ foreach ($tonics as $row) {
 <input type="hidden" name="action" value="create">
 <div class="te-field"><label for="new-name">Tonic name</label><input id="new-name" name="tonicname" maxlength="120" required placeholder="Everlasting ... Tonic"></div>
 <div class="te-field"><label for="new-rarity">Rarity</label><select id="new-rarity" name="rarity"><?php foreach ($rarities as $rarity): ?><option><?=h($rarity)?></option><?php endforeach; ?></select></div>
+<div class="te-field"><label for="new-wiki">Guild Wars Wiki URL (optional)</label><input id="new-wiki" type="url" name="wiki_url" placeholder="https://wiki.guildwars.com/wiki/..."></div>
 <div class="te-field"><label for="new-order">Display order</label><input id="new-order" type="number" name="display_order" min="0" max="65535" value="0" required></div>
 <button class="te-button" type="submit">Create tonic</button>
 </form>
@@ -101,6 +106,7 @@ foreach ($tonics as $row) {
 <input type="hidden" name="tonicid" value="<?=(int)$selected['tonicid']?>">
 <div class="te-field"><label for="edit-name">Tonic name</label><input id="edit-name" name="tonicname" maxlength="120" required value="<?=h($selected['tonicname'])?>"></div>
 <div class="te-field"><label for="edit-rarity">Rarity</label><select id="edit-rarity" name="rarity"><?php foreach ($rarities as $rarity): ?><option<?=($selected['rarity'] === $rarity ? ' selected' : '')?>><?=h($rarity)?></option><?php endforeach; ?></select></div>
+<div class="te-field"><label for="edit-wiki">Guild Wars Wiki URL (optional)</label><input id="edit-wiki" type="url" name="wiki_url" value="<?=h((string)($selected['wiki_url'] ?? ''))?>"></div>
 <div class="te-field"><label for="edit-order">Display order</label><input id="edit-order" type="number" name="display_order" min="0" max="65535" required value="<?=(int)$selected['display_order']?>"></div>
 <button class="te-button" type="submit">Save changes</button>
 </form>
