@@ -284,6 +284,7 @@ CREATE TABLE `gwtonics` (
   `tonicname` varchar(120) NOT NULL,
   `rarity` enum('White','Purple','Gold','Green') NOT NULL,
   `display_order` smallint(5) unsigned NOT NULL DEFAULT 0,
+  `wiki_url` varchar(500) DEFAULT NULL,
   PRIMARY KEY (`tonicid`),
   UNIQUE KEY `uq_gwtonics_name` (`tonicname`),
   KEY `idx_gwtonics_order` (`rarity`,`display_order`,`tonicname`)
