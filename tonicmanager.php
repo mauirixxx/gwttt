@@ -37,10 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $order = (int)$rawOrder;
         try {
             if ($action === 'create') {
-                $stmt = $con->prepare('INSERT INTO gwtonics (tonicname, rarity, display_order, wiki_url) VALUES (?, ?, ?, NULLIF(?, ''))');
+                $stmt = $con->prepare("INSERT INTO gwtonics (tonicname, rarity, display_order, wiki_url) VALUES (?, ?, ?, NULLIF(?, ''))");
                 $stmt->bind_param('ssis', $name, $rarity, $order, $wiki);
             } else {
-                $stmt = $con->prepare('UPDATE gwtonics SET tonicname = ?, rarity = ?, display_order = ?, wiki_url = NULLIF(?, '') WHERE tonicid = ?');
+                $stmt = $con->prepare("UPDATE gwtonics SET tonicname = ?, rarity = ?, display_order = ?, wiki_url = NULLIF(?, '') WHERE tonicid = ?");
                 $stmt->bind_param('ssisi', $name, $rarity, $order, $wiki, $id);
             }
             $stmt->execute();
