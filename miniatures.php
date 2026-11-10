@@ -46,10 +46,11 @@ if (isset($_SESSION['userid'])) {
         if($miniResult->num_rows===0) echo '<p class="mini-group-note">No miniatures in this group.</p>'; else { echo '<div class="mini-table-wrap"><table class="mini-table"><thead><tr><th>Miniature</th><th>HoM Dedicated</th><th>On Hand</th></tr></thead><tbody>';
             while($mini=$miniResult->fetch_assoc()){ $dedicated=(int)$mini['dedicated']===1; $rarity=strtolower((string)$mini['rarity']); $rarityClass=in_array($rarity,['green','gold','purple','white'],true)?'mini-rarity-'.$rarity:'mini-rarity-white'; $miniName=h($mini['mininame']); $wikiUrl=trim((string)($mini['wiki_url']??'')); if($wikiUrl!=='' && filter_var($wikiUrl,FILTER_VALIDATE_URL) && strcasecmp((string)parse_url($wikiUrl,PHP_URL_SCHEME),'https')===0){$miniName='<a class="mini-wiki-link" href="'.h($wikiUrl).'" target="_blank" rel="noopener noreferrer">'.$miniName.'</a>';} echo '<tr data-miniid="'.(int)$mini['miniid'].'"><td class="'.$rarityClass.'">'.$miniName.'</td><td><form class="mini-inline-form mini-ajax-form" action="includes/update-miniature.php" method="post">'.csrf_input().'<input type="hidden" name="miniid" value="'.(int)$mini['miniid'].'"><input type="hidden" name="action" value="toggle_dedicated"><button class="mini-dedicated '.($dedicated?'mini-yes':'mini-no').'" type="submit">'.($dedicated?'Yes':'No').'</button></form></td><td><form class="mini-inline-form mini-ajax-form" action="includes/update-miniature.php" method="post">'.csrf_input().'<input type="hidden" name="miniid" value="'.(int)$mini['miniid'].'"><input type="hidden" name="action" value="set_quantity"><input class="mini-quantity" type="number" name="quantity" min="0" max="999999" step="1" inputmode="numeric" value="'.(int)$mini['quantity'].'"><button class="mini-save-quantity" type="submit">Save</button></form></td></tr>'; }
             echo '</tbody></table></div>'; }
-        if ($group['groupkey']==='ingame' && $hasTonics) {
-            echo '<h3 class="mini-tonic-subheading">Everlasting Tonics — In-game Rewards</h3><p class="mini-group-note">Tonics from chests and other in-game rewards. Track quantities separately from miniature dedication.</p>';
-            if ($renderTonics('ingame') === 0) echo '<p class="mini-group-note">No in-game reward tonics listed.</p>';
-        }
+        echo '</details>';
+    }
+    if ($hasTonics) {
+        echo '<details class="mini-group"><summary>Everlasting Tonics — In-game Rewards</summary><p class="mini-group-note">Tonics from chests and other in-game rewards. Track quantities separately from miniature dedication.</p>';
+        if ($renderTonics('ingame') === 0) echo '<p class="mini-group-note">No in-game reward tonics listed.</p>';
         echo '</details>';
     }
     $miniStmt->close(); echo '</section>';
